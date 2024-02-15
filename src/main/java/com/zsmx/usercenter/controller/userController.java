@@ -1,7 +1,6 @@
 package com.zsmx.usercenter.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsmx.usercenter.common.BaseResponse;
 import com.zsmx.usercenter.common.ErrorCode;
@@ -13,7 +12,6 @@ import com.zsmx.usercenter.model.request.UserRegisterRequest;
 import com.zsmx.usercenter.service.UserService;
 
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -27,7 +25,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.zsmx.usercenter.constant.UserConstant.ADMIN_ROLE;
 import static com.zsmx.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 
 
