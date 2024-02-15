@@ -1,10 +1,14 @@
 package com.zsmx.usercenter.service;
 
 import com.zsmx.usercenter.model.User;
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 用户服务测试
@@ -72,7 +76,13 @@ public class UserServiceTest {
         result= userService.userRegister(userAccount,userPassword,checkPassword,planetCode);
         Assertions.assertTrue(result > 0);
 
+    }
 
+    @Test
+    public void testsearchUsersbyTags(){
+        List<String> tagName = Arrays.asList("java", "c#");
+        List<User> userList = userService.searchUsersByTags(tagName);
+        Assert.assertNotNull(userList);
 
     }
 }

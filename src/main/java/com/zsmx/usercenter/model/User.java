@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.lang.reflect.Type;
 import java.util.Date;
 
 /**
@@ -13,12 +12,15 @@ import java.util.Date;
  */
 @TableName(value ="user")
 @Data
+
 public class User implements Serializable {
+    @TableField(exist = false)
+    private static final long serialVersionUID = 1L;
     /**
      * id
      */
     @TableId(type = IdType.AUTO)
-    private Long id;
+    private long id;
 
     /**
      * 用户名称
@@ -86,6 +88,10 @@ public class User implements Serializable {
      */
     private String planetCode;
 
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
+    /**
+     * 标签 json 列表
+     */
+    private String tags;
+
+
 }

@@ -5,6 +5,10 @@ import com.zsmx.usercenter.model.User;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
+
+import static com.zsmx.usercenter.constant.UserConstant.ADMIN_ROLE;
+import static com.zsmx.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
 * @author ikun
@@ -45,4 +49,34 @@ public interface UserService extends IService<User> {
      * @return
      */
     int userLogout(HttpServletRequest request);
+
+    /**
+     * 根据标签搜索用户
+     * @param tagNameList
+     * @return
+     */
+    List<User> searchUsersByTags(List<String> tagNameList);
+
+    /**
+     * 更新用户信息
+     * @param user
+     * @return
+     */
+    int updateUser(User user,User loginUser);
+
+    /**
+     * 获取当前登录用户信息
+     * @return
+     */
+     User getLoginUser(HttpServletRequest request);
+
+    /**
+     * 是否为管理员
+     *
+     * @param request
+     * @return
+     */
+     boolean isAdmin(HttpServletRequest request);
+
+    boolean isAdmin(User loginUser);
 }

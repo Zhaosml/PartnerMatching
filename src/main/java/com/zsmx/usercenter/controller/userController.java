@@ -1,6 +1,8 @@
 package com.zsmx.usercenter.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsmx.usercenter.common.BaseResponse;
 import com.zsmx.usercenter.common.ErrorCode;
 import com.zsmx.usercenter.common.ResultUtils;
@@ -9,13 +11,20 @@ import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.request.UserLoginRequest;
 import com.zsmx.usercenter.model.request.UserRegisterRequest;
 import com.zsmx.usercenter.service.UserService;
+
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.zsmx.usercenter.constant.UserConstant.ADMIN_ROLE;
@@ -31,10 +40,15 @@ import static com.zsmx.usercenter.constant.UserConstant.USER_LOGIN_STATE;
  */
 @RestController
 @RequestMapping("/user")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@Slf4j
 public class userController {
 
-    @Resource
+    @Autowired
     private UserService userService;
+
+    @Resource
+    private RedisTemplate<String,Object> redisTemplate;
 
     /**
      * 用户注册
@@ -44,7 +58,7 @@ public class userController {
      */
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
-        // 校验
+        // 校验 账户、密码、校验密码 是否为空
         if (userRegisterRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -119,7 +133,7 @@ public class userController {
 
     @GetMapping("/search")
     public BaseResponse<List<User>> searchUsers(String username, HttpServletRequest request) {
-        if (!isAdmin(request)) {
+        if (!userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH, "缺少管理员权限");
         }
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -131,9 +145,50 @@ public class userController {
         return ResultUtils.success(list);
     }
 
+    @GetMapping("/recommend")
+    public BaseResponse<Page<User>> recommendUsers(long pageNum,long pageSize,HttpServletRequest request) {
+        //1.获取当前登录用户信息
+        User loginUser = userService.getLoginUser(request);
+        //2.将当前登录用户信息的id保存为redis的key
+        String key = String.format("zsmx:user:recommend:%s", loginUser.getId());
+        //3.redis String类型的操作
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        // 4.如果有缓存，直接读缓存
+        Page<User> page = (Page<User>) valueOperations.get(key);
+        //判空，如果不为空则返回成功
+        if(page != null){
+            return ResultUtils.success(page);
+        }
+        // 5.如果没缓存，查询数据库
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        page = userService.page(new Page<>(pageNum,pageSize),queryWrapper);
+        //6.写缓存     30秒一次
+        try {
+            valueOperations.set(key,page,30000, TimeUnit.MICROSECONDS);
+        }
+        catch (Exception e){
+            log.error("redis set key error", e);
+        }
+        return ResultUtils.success(page);
+    }
+
+    @PostMapping("/update")
+    public BaseResponse<Integer> updateUser(@RequestBody User user,HttpServletRequest request){
+        //1.校验参数是否为空
+        if (user == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        //2.校验权限        获取当前登录信息里的登录状态
+        User loginUser = userService.getLoginUser(request);
+
+        //3.触发更新    修改参数
+        int result = userService.updateUser(user,loginUser);
+        return ResultUtils.success(result);
+    }
+
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request) {
-        if (!isAdmin(request)) {
+        if (!userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH);
         }
         if (id <= 0) {
@@ -146,15 +201,26 @@ public class userController {
        /**
      * 是否为管理员
      *
-     * @param request
+     * @param
      * @return
      */
-    private boolean isAdmin(HttpServletRequest request) {
-        // 仅管理员可查询
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User) userObj;
-        return user != null && user.getUserRole() == ADMIN_ROLE;
+//    private boolean isAdmin(HttpServletRequest request) {
+//        // 仅管理员可查询
+//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+//        User user = (User) userObj;
+//        return user != null && user.getUserRole() == ADMIN_ROLE;
+//    }
+
+    @GetMapping("/search/tags")
+    public BaseResponse<List<User>> searchUserbyTags(@RequestParam(required = false) List<String> tagNameList){
+        if (CollectionUtils.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        List<User> userList = userService.searchUsersByTags(tagNameList);
+        return ResultUtils.success(userList);
     }
+
+
 
 
 
