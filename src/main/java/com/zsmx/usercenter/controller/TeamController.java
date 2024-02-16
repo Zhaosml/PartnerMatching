@@ -78,7 +78,19 @@ public class TeamController {
     }
 
     @GetMapping("/list")
-    public BaseResponse<Page<Team>> listTeams(TeamQuery teamQuery){
+    public BaseResponse<List<Team>> listTeams(TeamQuery teamQuery){
+        if(teamQuery == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Team team = new Team();
+        BeanUtils.copyProperties(teamQuery,team);
+        QueryWrapper<Team> wrapper = new QueryWrapper<>();
+        List<Team> result = teamService.list(wrapper);
+        return ResultUtils.success(result);
+    }
+
+    @GetMapping("/list/page")
+    public BaseResponse<Page<Team>> listTeamsByPage(TeamQuery teamQuery){
         if(teamQuery == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -86,8 +98,9 @@ public class TeamController {
         BeanUtils.copyProperties(teamQuery,team);
         Page<Team> teamPage = new Page<>(teamQuery.getPageNum(), teamQuery.getPageSize());
         QueryWrapper<Team> wrapper = new QueryWrapper<>();
-        Page<Team> page = teamService.page(teamPage, wrapper);
-        return ResultUtils.success(page);
+        Page<Team> result = teamService.page(teamPage, wrapper);
+        return ResultUtils.success(result);
     }
+
 
 }
