@@ -144,11 +144,11 @@ public class userController {
 
     @GetMapping("/recommend")
     public BaseResponse<Page<User>> recommendUsers(long pageNum,long pageSize,HttpServletRequest request) {
-        //1.获取当前登录用户信息
+        // 1.获取当前登录用户信息
         User loginUser = userService.getLoginUser(request);
-        //2.将当前登录用户信息的id保存为redis的key
+        // 2.将当前登录用户信息的id保存为redis的key
         String key = String.format("zsmx:user:recommend:%s", loginUser.getId());
-        //3.redis String类型的操作
+        // 3.redis String类型的操作
         ValueOperations valueOperations = redisTemplate.opsForValue();
         // 4.如果有缓存，直接读缓存
         Page<User> page = (Page<User>) valueOperations.get(key);
@@ -159,7 +159,7 @@ public class userController {
         // 5.如果没缓存，查询数据库
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         page = userService.page(new Page<>(pageNum,pageSize),queryWrapper);
-        //6.写缓存     30秒一次
+        // 6.写缓存     30秒一次
         try {
             valueOperations.set(key,page,30000, TimeUnit.MICROSECONDS);
         }
@@ -171,14 +171,14 @@ public class userController {
 
     @PostMapping("/update")
     public BaseResponse<Integer> updateUser(@RequestBody User user,HttpServletRequest request){
-        //1.校验参数是否为空
+        // 1.校验参数是否为空
         if (user == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        //2.校验权限        获取当前登录信息里的登录状态
+        // 2.校验权限        获取当前登录信息里的登录状态
         User loginUser = userService.getLoginUser(request);
 
-        //3.触发更新    修改参数
+        // 3.触发更新    修改参数
         int result = userService.updateUser(user,loginUser);
         return ResultUtils.success(result);
     }
