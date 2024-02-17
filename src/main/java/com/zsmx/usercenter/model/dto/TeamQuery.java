@@ -1,6 +1,7 @@
 package com.zsmx.usercenter.model.dto;
 
 import com.zsmx.usercenter.common.PageRequest;
+import com.zsmx.usercenter.model.vo.UserVO;
 import lombok.Data;
 
 import java.util.List;
@@ -46,4 +47,9 @@ public class TeamQuery extends PageRequest {
      * 0 - 公开，1 - 私有，2 - 加密
      */
     private Integer status;
+
+    /**
+     * 创建人用户信息
+     */
+    private UserVO createUser;
 }

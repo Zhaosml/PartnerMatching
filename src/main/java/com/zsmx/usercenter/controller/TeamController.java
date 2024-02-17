@@ -11,6 +11,9 @@ import com.zsmx.usercenter.model.Team;
 import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.dto.TeamQuery;
 import com.zsmx.usercenter.model.request.TeamAddRequest;
+import com.zsmx.usercenter.model.request.TeamJoinRequest;
+import com.zsmx.usercenter.model.request.TeamUpdateRequest;
+import com.zsmx.usercenter.model.vo.TeamUserVO;
 import com.zsmx.usercenter.service.TeamService;
 import com.zsmx.usercenter.service.UserService;
 import org.springframework.beans.BeanUtils;
@@ -54,11 +57,12 @@ public class TeamController {
     }
 
     @PostMapping("/update")
-    public BaseResponse<Boolean> updateTeam(@RequestBody Team team){
-        if(team == null){
+    public BaseResponse<Boolean> updateTeam(@RequestBody TeamUpdateRequest teamUpdateRequest, HttpServletRequest request){
+        if(teamUpdateRequest == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        boolean result = teamService.updateById(team);
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.updateTeam(teamUpdateRequest,loginUser);
         if(!result){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,"更新失败");
         }
@@ -76,16 +80,24 @@ public class TeamController {
         }
         return ResultUtils.success(byId);
     }
-
+//    @GetMapping("/list")
+//    public BaseResponse<List<Team>> listTeams(TeamQuery teamQuery){
+//        if(teamQuery == null){
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
+//        Team team = new Team();
+//        BeanUtils.copyProperties(teamQuery,team);
+//        QueryWrapper<Team> wrapper = new QueryWrapper<>();
+//        List<Team> result = teamService.list(wrapper);
+//        return ResultUtils.success(result);
+//    }
     @GetMapping("/list")
-    public BaseResponse<List<Team>> listTeams(TeamQuery teamQuery){
+    public BaseResponse<List<TeamUserVO>> listTeams(TeamQuery teamQuery, HttpServletRequest request){
         if(teamQuery == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Team team = new Team();
-        BeanUtils.copyProperties(teamQuery,team);
-        QueryWrapper<Team> wrapper = new QueryWrapper<>();
-        List<Team> result = teamService.list(wrapper);
+        boolean admin = userService.isAdmin(request);
+        List<TeamUserVO> result = teamService.listTeams(teamQuery,admin);
         return ResultUtils.success(result);
     }
 
@@ -99,6 +111,15 @@ public class TeamController {
         Page<Team> teamPage = new Page<>(teamQuery.getPageNum(), teamQuery.getPageSize());
         QueryWrapper<Team> wrapper = new QueryWrapper<>();
         Page<Team> result = teamService.page(teamPage, wrapper);
+        return ResultUtils.success(result);
+    }
+    @PostMapping("/join")
+    public BaseResponse<Boolean> joinTeam(@RequestBody TeamJoinRequest teamJoinRequest,HttpServletRequest request){
+        if(teamJoinRequest == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.joinTime(teamJoinRequest,loginUser);
         return ResultUtils.success(result);
     }
 

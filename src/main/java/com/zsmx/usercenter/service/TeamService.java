@@ -3,6 +3,12 @@ package com.zsmx.usercenter.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsmx.usercenter.model.Team;
 import com.zsmx.usercenter.model.User;
+import com.zsmx.usercenter.model.dto.TeamQuery;
+import com.zsmx.usercenter.model.request.TeamJoinRequest;
+import com.zsmx.usercenter.model.request.TeamUpdateRequest;
+import com.zsmx.usercenter.model.vo.TeamUserVO;
+
+import java.util.List;
 
 /**
 * @author ikun
@@ -16,6 +22,23 @@ public interface TeamService extends IService<Team> {
      * @param loginUser
      * @return
      */
-
     long addTeam(Team team, User loginUser);
+
+    /**
+     * 搜索队伍
+     * @param teamQuery
+     * @return
+     */
+    List<TeamUserVO> listTeams(TeamQuery teamQuery, boolean isAdmin);
+
+    /**
+     * 修改队伍
+     * @param teamUpdateRequest
+     * @param loginUser
+     * @return
+     */
+    boolean updateTeam(TeamUpdateRequest teamUpdateRequest, User loginUser);
+
+
+    boolean joinTime(TeamJoinRequest teamJoinRequest, User userLogin);
 }
