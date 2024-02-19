@@ -12,6 +12,7 @@ import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.dto.TeamQuery;
 import com.zsmx.usercenter.model.request.TeamAddRequest;
 import com.zsmx.usercenter.model.request.TeamJoinRequest;
+import com.zsmx.usercenter.model.request.TeamQuitRequest;
 import com.zsmx.usercenter.model.request.TeamUpdateRequest;
 import com.zsmx.usercenter.model.vo.TeamUserVO;
 import com.zsmx.usercenter.service.TeamService;
@@ -25,6 +26,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/team")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+
 public class TeamController {
     @Resource
     private TeamService teamService;
@@ -42,18 +45,6 @@ public class TeamController {
         long teamId = teamService.addTeam(team,loginUser);
 
         return ResultUtils.success(teamId);
-    }
-
-    @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteTeam(@PathVariable long id){
-        if(id <= 0){
-            throw new BusinessException(ErrorCode.NULL_ERROR);
-        }
-        boolean result = teamService.removeById(id);
-        if(!result){
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"删除失败");
-        }
-        return ResultUtils.success(true);
     }
 
     @PostMapping("/update")
@@ -122,6 +113,29 @@ public class TeamController {
         boolean result = teamService.joinTime(teamJoinRequest,loginUser);
         return ResultUtils.success(result);
     }
+    @PostMapping("quit")
+    public BaseResponse<Boolean> quitTeam(@RequestBody TeamQuitRequest teamQuitRequest, HttpServletRequest request){
+        if(teamQuitRequest == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.quitTeam(teamQuitRequest,loginUser);
+        return ResultUtils.success(result);
+    }
+
+    @PostMapping("/delete")
+    public BaseResponse<Boolean> deleteTeam(@PathVariable long id,HttpServletRequest request){
+        if(id <= 0){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.deleteTeam(id,loginUser);
+        if(!result){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"删除失败");
+        }
+        return ResultUtils.success(true);
+    }
+
 
 
 }

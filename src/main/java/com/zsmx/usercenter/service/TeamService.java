@@ -5,6 +5,7 @@ import com.zsmx.usercenter.model.Team;
 import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.dto.TeamQuery;
 import com.zsmx.usercenter.model.request.TeamJoinRequest;
+import com.zsmx.usercenter.model.request.TeamQuitRequest;
 import com.zsmx.usercenter.model.request.TeamUpdateRequest;
 import com.zsmx.usercenter.model.vo.TeamUserVO;
 
@@ -39,6 +40,27 @@ public interface TeamService extends IService<Team> {
      */
     boolean updateTeam(TeamUpdateRequest teamUpdateRequest, User loginUser);
 
-
+    /**
+     * 加入队伍
+     * @param teamJoinRequest
+     * @param userLogin
+     * @return
+     */
     boolean joinTime(TeamJoinRequest teamJoinRequest, User userLogin);
+
+    /**
+     * 退出队伍
+     * @param teamQuitRequest
+     * @param loginUser
+     * @return
+     */
+    boolean quitTeam(TeamQuitRequest teamQuitRequest, User loginUser);
+
+    /**
+     * 解散队伍
+     * @param id
+     * @param loginUser
+     * @return
+     */
+    boolean deleteTeam(long id, User loginUser);
 }
