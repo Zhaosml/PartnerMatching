@@ -52,4 +52,5 @@ public class TeamQuery extends PageRequest {
      * 创建人用户信息
      */
     private UserVO createUser;
+
 }
