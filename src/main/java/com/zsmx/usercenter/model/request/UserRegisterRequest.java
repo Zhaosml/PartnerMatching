@@ -14,6 +14,8 @@ import java.io.Serializable;
 public class UserRegisterRequest implements Serializable {
 
     private static final long serialVersionUID = -7052350412788015417L;
+    private String username;
+
     //用户账号
     private String userAccount;
     //用户密码

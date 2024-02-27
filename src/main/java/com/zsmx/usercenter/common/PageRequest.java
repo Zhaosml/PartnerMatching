@@ -3,6 +3,9 @@ package com.zsmx.usercenter.common;
 import lombok.Data;
 import java.io.Serializable;
 
+/**
+ * 分页常量参数
+ */
 @Data
 public class PageRequest implements Serializable {
 

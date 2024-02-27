@@ -2,6 +2,8 @@ package com.zsmx.usercenter.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.zsmx.usercenter.common.BaseResponse;
 import com.zsmx.usercenter.common.ErrorCode;
 import com.zsmx.usercenter.common.ResultUtils;
@@ -9,10 +11,12 @@ import com.zsmx.usercenter.exception.BusinessException;
 import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.request.UserLoginRequest;
 import com.zsmx.usercenter.model.request.UserRegisterRequest;
+import com.zsmx.usercenter.model.vo.UserVO;
 import com.zsmx.usercenter.service.UserService;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -20,7 +24,9 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.jws.soap.SOAPBinding;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -59,14 +65,14 @@ public class userController {
         if (userRegisterRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        String username = userRegisterRequest.getUsername();
         String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
-        String planetCode = userRegisterRequest.getPlanetCode();
-        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
+        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             return null;
         }
-        long result = userService.userRegister(userAccount, userPassword, checkPassword, planetCode);
+        long result = userService.userRegister(username,userAccount, userPassword, checkPassword);
         return ResultUtils.success(result);
     }
 
@@ -128,6 +134,12 @@ public class userController {
 
     // https://yupi.icu/
 
+    /**
+     * 搜索用户
+     * @param username
+     * @param request
+     * @return
+     */
     @GetMapping("/search")
     public BaseResponse<List<User>> searchUsers(String username, HttpServletRequest request) {
         if (!userService.isAdmin(request)) {
@@ -142,6 +154,13 @@ public class userController {
         return ResultUtils.success(list);
     }
 
+    /**
+     * 搜索推荐用户
+     * @param pageNum
+     * @param pageSize
+     * @param request
+     * @return
+     */
     @GetMapping("/recommend")
     public BaseResponse<Page<User>> recommendUsers(long pageNum,long pageSize,HttpServletRequest request) {
         // 1.获取当前登录用户信息
@@ -195,19 +214,11 @@ public class userController {
         return ResultUtils.success(b);
     }
 
-       /**
-     * 是否为管理员
-     *
-     * @param
+    /**
+     * 搜索标签
+     * @param tagNameList
      * @return
      */
-//    private boolean isAdmin(HttpServletRequest request) {
-//        // 仅管理员可查询
-//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-//        User user = (User) userObj;
-//        return user != null && user.getUserRole() == ADMIN_ROLE;
-//    }
-
     @GetMapping("/search/tags")
     public BaseResponse<List<User>> searchUserbyTags(@RequestParam(required = false) List<String> tagNameList){
         if (CollectionUtils.isEmpty(tagNameList)) {
@@ -216,7 +227,6 @@ public class userController {
         List<User> userList = userService.searchUsersByTags(tagNameList);
         return ResultUtils.success(userList);
     }
-
 
     /**
      * 获取最匹配的用户
@@ -233,6 +243,21 @@ public class userController {
         User user = userService.getLoginUser(request);
         return ResultUtils.success(userService.matchUsers(num,user));
     }
+
+    @GetMapping("tagss")
+    public BaseResponse<List<String>> tagss(HttpServletRequest request){
+        User userLogin = userService.getLoginUser(request);
+        // 获取用户的标签
+        String tags = userLogin.getTags();
+        Gson gson = new Gson();
+        List<String> userTagList = gson.fromJson(tags, new TypeToken<List<String>>() {
+        }.getType());
+
+        return ResultUtils.success(userTagList);
+    }
+
+
+
 
 
 

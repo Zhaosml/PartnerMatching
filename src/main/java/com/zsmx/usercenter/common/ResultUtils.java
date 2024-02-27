@@ -13,7 +13,7 @@ public class ResultUtils {
      *
      * @param data
      * @param <T>
-     * @return
+     * @return  code data message
      */
     public static <T> BaseResponse<T> success(T data) {
         return new BaseResponse<>(0, data, "ok");
@@ -23,7 +23,7 @@ public class ResultUtils {
      * 失败
      *
      * @param errorCode
-     * @return
+     * @return  errorCode
      */
     public static BaseResponse error(ErrorCode errorCode) {
         return new BaseResponse<>(errorCode);

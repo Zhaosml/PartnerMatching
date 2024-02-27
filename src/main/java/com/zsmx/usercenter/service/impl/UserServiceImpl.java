@@ -49,9 +49,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 //    private static final String USER_LOGIN_STATE = "userLoginState";
 
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword,String planetCode) {
+    public long userRegister(String username, String userAccount, String userPassword, String checkPassword) {
         // 1. 校验
-        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
+        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
         // 1.1. 账户长度 **不小于** 4位
@@ -63,9 +63,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
         }
         //  后面加的
-        if (planetCode.length() > 5) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "星球编号过长");
-        }
+//        if (planetCode.length() > 5) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR, "星球编号过长");
+//        }
         // 1.3. 账户不能包含特殊字符
         String accountRegex = "[`~!#\\$%^&*()+=|{}':;',\\\\\\\\[\\\\\\\\].<>/?~！@#￥%……&*（）9——+|{}【】\\\\\"‘；：”“’。，、？]";
 
@@ -89,22 +89,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return -1;
         }
         // 星球id不能重复
-        wrapper = new QueryWrapper<>();
-        wrapper.eq("userAccount",userAccount);
-        // long count = this.count(wrapper);
-        count = userMapper.selectCount(wrapper);
-        if(count>0){
-            return -1;
-        }
+//        wrapper = new QueryWrapper<>();
+//        wrapper.eq("userAccount",userAccount);
+//        // long count = this.count(wrapper);
+//        count = userMapper.selectCount(wrapper);
+//        if(count>0){
+//            return -1;
+//        }
 
         // 2. 加密
         // final String SALT = "zsmx";
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
         // 3. 插入数据
         User user = new User();
+        user.setUsername(username);
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
-        user.setPlanetCode(planetCode);
+//        user.setPlanetCode(planetCode);
         boolean saveResult = this.save(user);
         if(!saveResult){
             return -1;
@@ -125,7 +126,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return null;
         }
         // 账户不能包含特殊字符
-        String accountRegex = "[`~!#\\$%^&*()+=|{}'Aa:;',\\\\\\\\[\\\\\\\\].<>/?~！@#￥%……&*（）9——+|{}【】\\\\\"‘；：”“’。，、？]";
+        String accountRegex = "[`~!#\\$%^&*()+=|{}':;',\\\\\\\\[\\\\\\\\].<>/?~！@#￥%……&*（）9——+|{}【】\\\\\"‘；：”“’。，、？]";
         Matcher matcher = Pattern.compile(accountRegex).matcher(userAccount);
         if (matcher.find()) {
             return null;
@@ -195,27 +196,35 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     @Override
     public List<User> searchUsersByTags(List<String> tagNameList){
+        //  1. 判断参数是否为空
         if(CollectionUtils.isEmpty(tagNameList)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        // 2. 查询所有的用户
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         List<User> userList = userMapper.selectList(wrapper);
+        // 使用gson  数组转换为json
         Gson gson = new Gson();
-        return userList.stream().filter(user -> {
-                String tags = user.getTags();
+        // 3. 获取用户列表里的标签
+        return userList.stream().filter(user -> { String tags = user.getTags();
+            // 如果标签为null 或者 是空白字符串 返回false
             if (tags == null || StringUtils.isBlank(tags)) {
                 return false;
             }
-                Set<String> tempTagNameSet  = gson.fromJson(tags, new TypeToken<Set<String>>(){
+            // 通过 Gson 将 JSON 字符串 tags 解析为Set<String>对象，其中Set包含了用户的标签信息
+            Set<String> tempTagNameSet = gson.fromJson(tags, new TypeToken<Set<String>>(){
                 }.getType());
-                for (String tagName : tagNameList){
-                    if(!tempTagNameSet.contains(tagName)){
-                        return false;
+                    // 4. 遍历 tagNameList 中的每个标签
+                    for (String tagName : tagNameList){
+                        // 如果当前的标签不在用户的标签集合中
+                        if(!tempTagNameSet.contains(tagName)){
+                            // 返回 false，表示当前用户不符合筛选条件
+                            return false;
+                        }
                     }
-                }
-                return  true;
-        }).map(this::getSafetyUser).collect(Collectors.toList());
+                    return  true;
 
+            }).map(this::getSafetyUser).collect(Collectors.toList());
     }
 
     /**
@@ -340,6 +349,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             finalUserList.add(userIdUserListMap.get(userId).get(0));
         }
         return finalUserList;
+    }
+
+    @Override
+    public List<User> tags(List<String>  tagList) {
+return null;
     }
 
 }

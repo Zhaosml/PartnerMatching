@@ -4,11 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsmx.usercenter.model.User;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.List;
-
-import static com.zsmx.usercenter.constant.UserConstant.ADMIN_ROLE;
-import static com.zsmx.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
 * @author ikun
@@ -25,7 +21,7 @@ public interface UserService extends IService<User> {
      * @param checkPassword 校验密码
      * @return 新用户 id
      */
-    long userRegister(String userAccount,String userPassword,String checkPassword,String planetCode);
+    long userRegister(String username,String userAccount,String userPassword,String checkPassword );
 
     /**
      * 用户登录
@@ -86,4 +82,6 @@ public interface UserService extends IService<User> {
      * @return
      */
     List<User> matchUsers(long num, User loginUser);
+
+    List<User> tags(List<String> tagList);
 }

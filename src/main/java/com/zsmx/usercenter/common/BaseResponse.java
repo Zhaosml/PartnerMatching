@@ -32,7 +32,6 @@ public class BaseResponse<T> implements Serializable {
      * 描述
      */
     private String description;
-
     // https://t.zsxq.com/0emozsIJh
     public BaseResponse(int code, T data, String message, String description) {
         this.code = code;
