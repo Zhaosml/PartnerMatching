@@ -8,6 +8,7 @@ import com.zsmx.usercenter.common.ErrorCode;
 import com.zsmx.usercenter.exception.BusinessException;
 import com.zsmx.usercenter.mapper.UserMapper;
 import com.zsmx.usercenter.model.User;
+import com.zsmx.usercenter.model.request.UserQueryRequest;
 import com.zsmx.usercenter.service.UserService;
 import com.zsmx.usercenter.utils.AlgorithmUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 
 import static com.zsmx.usercenter.constant.UserConstant.ADMIN_ROLE;
 import static com.zsmx.usercenter.constant.UserConstant.USER_LOGIN_STATE;
+import static com.zsmx.usercenter.utils.StringUtils.stringJsonListToLongSet;
 
 /**
 * @author ikun
@@ -163,6 +165,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             }
             User safetyUser = new User();
             safetyUser.setId(user.getId());
+            safetyUser.setProfile(user.getProfile());
             safetyUser.setUsername(user.getUsername());
             safetyUser.setUserAccount(user.getUserAccount());
             safetyUser.setAvatarUrl(user.getAvatarUrl());
@@ -355,6 +358,72 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public List<User> tags(List<String>  tagList) {
 return null;
     }
+
+    @Override
+    public List<User> getFriendsById(User currentUser) {
+        User loginUser = this.getById(currentUser.getId());
+        Set<Long> friendsId = stringJsonListToLongSet(loginUser.getUserIds());
+        return friendsId.stream().map(user -> this.getSafetyUser(this.getById(user))).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean addUser(User userLogin, Long id) {
+        User loginUser = this.getById(userLogin.getId());
+
+        User friendUser = this.getById(id);
+
+        Set<Long> friendsId = stringJsonListToLongSet(loginUser.getUserIds());
+        Set<Long> fid = stringJsonListToLongSet(friendUser.getUserIds());
+        // TODO 添加好友需要对方同意
+        if (friendsId.contains(id) && fid.contains(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "不能重复添加好友");
+        }
+        friendsId.add(id);
+        fid.add(loginUser.getId());
+
+        String friends = new Gson().toJson(friendsId);
+        String fids = new Gson().toJson(fid);
+
+        loginUser.setUserIds(friends);
+        friendUser.setUserIds(fids);
+        return this.updateById(loginUser) && this.updateById(friendUser);
+    }
+
+    @Override
+    public boolean deleteFriend(User currentUser, Long id) {
+        User loginUser = this.getById(currentUser.getId());
+        User friendUser = this.getById(id);
+
+        Set<Long> friendsId = stringJsonListToLongSet(loginUser.getUserIds());
+        Set<Long> fid = stringJsonListToLongSet(friendUser.getUserIds());
+
+        friendsId.remove(id);
+        fid.remove(loginUser.getId());
+
+        String friends = new Gson().toJson(friendsId);
+        String fids = new Gson().toJson(fid);
+        loginUser.setUserIds(friends);
+        friendUser.setUserIds(fids);
+        return this.updateById(loginUser) && this.updateById(friendUser);
+    }
+
+    @Override
+    public List<User> searchFriend(UserQueryRequest userQueryRequest, User currentUser) {
+        String searchText = userQueryRequest.getSearchText();
+
+        User user = this.getById(currentUser.getId());
+        Set<Long> friendsId = stringJsonListToLongSet(user.getUserIds());
+        List<User> users = new ArrayList<>();
+        friendsId.forEach(id -> {
+            User u = this.getById(id);
+            if (u.getUsername().contains(searchText)) {
+                users.add(u);
+            }
+        });
+        return users;
+    }
+
+
 
 }
 
