@@ -2,6 +2,7 @@ package com.zsmx.usercenter.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsmx.usercenter.model.User;
+import com.zsmx.usercenter.model.request.UserQueryRequest;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -84,4 +85,41 @@ public interface UserService extends IService<User> {
     List<User> matchUsers(long num, User loginUser);
 
     List<User> tags(List<String> tagList);
+
+
+    /**
+     * 根据id获取好友列表
+     *
+     * @param currentUser
+     * @return
+     */
+    List<User> getFriendsById(User currentUser);
+
+    /**
+     * 添加好友
+     *
+     * @param userLogin
+     * @param id
+     * @return
+     */
+    boolean addUser(User userLogin, Long id);
+
+    /**
+     * 删除好友
+     *
+     * @param currentUser
+     * @param id
+     * @return
+     */
+    boolean deleteFriend(User currentUser, Long id);
+
+    /**
+     * 搜索好友
+     *
+     * @param userQueryRequest
+     * @param currentUser
+     * @return
+     */
+    List<User> searchFriend(UserQueryRequest userQueryRequest, User currentUser);
+
 }

@@ -33,6 +33,11 @@ public class User implements Serializable {
     private String userAccount;
 
     /**
+     * 添加的好友
+     */
+    private String userIds;
+
+    /**
      * 头像
      */
     private String avatarUrl;

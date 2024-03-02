@@ -10,6 +10,7 @@ import com.zsmx.usercenter.common.ResultUtils;
 import com.zsmx.usercenter.exception.BusinessException;
 import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.request.UserLoginRequest;
+import com.zsmx.usercenter.model.request.UserQueryRequest;
 import com.zsmx.usercenter.model.request.UserRegisterRequest;
 import com.zsmx.usercenter.model.vo.UserVO;
 import com.zsmx.usercenter.service.UserService;
@@ -258,6 +259,42 @@ public class userController {
 
 
 
+    @GetMapping("/friends")
+    public BaseResponse<List<User>> getFriends(HttpServletRequest request) {
+        User currentUser = userService.getLoginUser(request);
+        List<User> getUser = userService.getFriendsById(currentUser);
+        return ResultUtils.success(getUser);
+    }
+
+    @PostMapping("/addUser/{id}")
+    public BaseResponse<Boolean> addUser(@PathVariable("id") Long id, HttpServletRequest request) {
+        if (id == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        User userLogin = userService.getLoginUser(request);
+        boolean addUser = userService.addUser(userLogin, id);
+        return ResultUtils.success(addUser);
+    }
+
+    @PostMapping("/deleteFriend/{id}")
+    public BaseResponse<Boolean> deleteFriend(@PathVariable("id") Long id, HttpServletRequest request) {
+        if (id == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "好友不存在");
+        }
+        User currentUser = userService.getLoginUser(request);
+        boolean deleteFriend = userService.deleteFriend(currentUser, id);
+        return ResultUtils.success(deleteFriend);
+    }
+
+    @PostMapping("/searchFriend")
+    public BaseResponse<List<User>> searchFriend(@RequestBody UserQueryRequest userQueryRequest, HttpServletRequest request) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        User currentUser = userService.getLoginUser(request);
+        List<User> searchFriend = userService.searchFriend(userQueryRequest, currentUser);
+        return ResultUtils.success(searchFriend);
+    }
 
 
 
