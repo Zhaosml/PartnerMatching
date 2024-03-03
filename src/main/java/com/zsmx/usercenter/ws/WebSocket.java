@@ -23,19 +23,22 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 
 import static com.zsmx.usercenter.constant.ChatConstant.PRIVATE_CHAT;
+import static com.zsmx.usercenter.constant.ChatConstant.TEAM_CHAT;
 import static com.zsmx.usercenter.utils.StringUtils.stringJsonListToLongSet;
 /**
  * WebSocket服务端
  */
 @Component
 @Slf4j
-@ServerEndpoint("/websocket/{userId}") // WebSocket端点
+@ServerEndpoint("/websocket/{userId}/{teamId}") // WebSocket端点
 public class WebSocket {
 
     private static UserService userService;
@@ -62,12 +65,40 @@ public class WebSocket {
     private static final Map<String, Session> SESSION_POOL = new HashMap<>(0);
 
     /**
+     * 保存队伍的连接信息
+     */
+    private static final Map<String, ConcurrentHashMap<String, WebSocket>> rooms = new ConcurrentHashMap();
+    /**
+    /**
      * 当WebSocket建立连接成功后会触发这个注解修饰的方法
      * @param session
      * @param userId
      */
+
+    private Session session;
+
+    /**
+     * 队伍内群发消息
+     *
+     * @param teamId
+     * @param msg
+     * @throws Exception
+     */
+    public static void broadcast(String teamId, String msg) throws Exception {
+        ConcurrentHashMap<String, WebSocket> map = rooms.get(teamId);
+        for (String key : map.keySet()) {
+            // keySet获取map集合key的集合  然后在遍历key即可
+            try {
+                WebSocket webSocket = map.get(key);
+                webSocket.sendMessage(msg);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     @OnOpen
-    public void onOpen(Session session, @PathParam(value = "userId") String userId) {
+    public void onOpen(Session session, @PathParam(value = "userId") String userId, @PathParam(value = "teamId") String teamId) {
         try {
             // 检查用户ID是否为空或未定义
             if (StringUtils.isBlank(userId) || "undefined".equals(userId)) {
@@ -75,13 +106,25 @@ public class WebSocket {
                 sendError(userId, "参数有误");
                 return;
             }
-            // 1. 添加新会话到集合中
-            SESSIONS.add(session);
-            // 2. 将用户ID和会话存入会话池
-            SESSION_POOL.put(userId, session);
-            log.info("有新用户加入，userId={}, 当前在线人数为：{}", userId, SESSION_POOL.size());
-            // 3. 发送所有在线用户信息给客户端
-            sendAllUsers();
+            this.session = session;
+            if (!"NaN".equals(teamId)) {
+                if (!rooms.containsKey(teamId)) {
+                    ConcurrentHashMap<String, WebSocket> room = new ConcurrentHashMap<>();
+                    room.put(userId, this);
+                    rooms.put(teamId, room);
+                } else {
+                    // 房间已存在，直接添加用户到相应的房间
+                    rooms.get(teamId).put(userId, this);
+                }
+            } else {
+                // 1. 添加新会话到集合中
+                SESSIONS.add(session);
+                // 2. 将用户ID和会话存入会话池
+                SESSION_POOL.put(userId, session);
+                log.info("有新用户加入，userId={}, 当前在线人数为：{}", userId, SESSION_POOL.size());
+                // 3. 发送所有在线用户信息给客户端
+                sendAllUsers();
+            }
         } catch (Exception e) {
             // 处理异常情况
             e.printStackTrace();
@@ -108,21 +151,22 @@ public class WebSocket {
      * @param session 关闭的会话对象
      */
     @OnClose
-    public void onClose(@PathParam("userId") String userId, Session session) {
+    public void onClose(@PathParam("userId") String userId,@PathParam("teamId") String teamId, Session session) {
         try {
-            // 如果会话池不为空
-            if (!SESSION_POOL.isEmpty()) {
-                // 从会话池中移除关闭的会话
-                SESSION_POOL.remove(userId);
-                // 从会话集合中移除关闭的会话
-                SESSIONS.remove(session);
-                log.info("【WebSocket消息】连接断开 id为=={}", userId);
-                log.info("【WebSocket消息】 session 连接断开 ,id为== {}", session.getId());
+            if (!"NaN".equals(teamId)) {
+                rooms.remove(teamId);
+            } else {
+                // 如果会话池不为空
+                if (!SESSION_POOL.isEmpty()) {
+                    // 从会话池中移除关闭的会话
+                    SESSION_POOL.remove(userId);
+                    // 从会话集合中移除关闭的会话
+                    SESSIONS.remove(session);
+                }
+                log.info("【WebSocket消息】连接断开，总数为：" + SESSION_POOL.size());
+                sendAllUsers();
             }
-            // 记录当前在线用户数量
-            log.info("【WebSocket消息】连接断开，总数为：" + SESSION_POOL.size());
             // 发送更新后的所有在线用户信息给客户端
-            sendAllUsers();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -145,50 +189,111 @@ public class WebSocket {
         // 将收到的消息解析为MessageRequest对象
         MessageRequest messageRequest = new Gson().fromJson(message, MessageRequest.class);
         Long toId = messageRequest.getToId();
+        Long teamId = messageRequest.getTeamId();
         String text = messageRequest.getText();
         Integer chatType = messageRequest.getChatType();
         // 如果是私聊消息
-        if (chatType == 1) {
-            // 保存私聊记录
-            savaChat(userId, toId, text);
-            // 获取接收者的会话
-            Session toSession = SESSION_POOL.get(toId.toString());
-            if (toSession != null) {
-                // 调用ChatService获取私聊消息的处理结果
-                MessageVo messageVo = chatService.chatResult(Long.parseLong(userId), toId, text);
-                // 将处理结果转换为JSON格式并发送给接收者
-                String toJson = new Gson().toJson(messageVo);
-                sendOneMessage(toId.toString(), toJson);
-                log.info("发送给用户username={}，消息：{}", messageVo.getToUser(), toJson);
-            } else {
-                // sendError(userId, "发送失败");
-                log.info("发送失败，未找到用户username={}的session", toId);
-            }
+        if (chatType == PRIVATE_CHAT) {
+            // 私聊
+            privateChat(userId, toId, text, chatType);
+        } else if (chatType == TEAM_CHAT) {
+            // 队伍内聊天
+            teamChat(userId, text, teamId, chatType);
         } else {
-            // 如果是广播消息，将消息发送给所有在线用户
-            MessageVo messageVo = new MessageVo();
-            // 通过用户ID从UserService获取用户信息
-            User fromUser = userService.getById(userId);
-            // 创建一个新的WebSocketVo对象，并将从UserService获取的用户信息复制到该对象中
-            WebSocketVo fromWebSocketVo = new WebSocketVo();
-            BeanUtils.copyProperties(fromUser, fromWebSocketVo);
-            // 将WebSocketVo对象设置为MessageVo对象的发送者信息
-            messageVo.setFormUser(fromWebSocketVo);
-            // 将消息内容设置到MessageVo对象中
-            messageVo.setText(text);
-            // 将MessageVo对象转换为JSON格式的字符串
-            String toJson = new Gson().toJson(messageVo);
-            // 发送消息给所有在线用户
-            sendAllMessage(toJson);
+            // 群聊
+            hallChat(userId, text, chatType);
         }
     }
 
-    private void savaChat(String userId, Long toId, String text) {
-        User user = userService.getById(userId);
-        Set<Long> userIds = stringJsonListToLongSet(user.getUserIds());
-        if (!userIds.contains(toId)) {
-            sendError(userId, "该用户不是你的好友");
-            return;
+
+    /**
+     * 发送消息
+     *
+     * @param message
+     * @throws IOException
+     */
+    public void sendMessage(String message) throws IOException {
+        this.session.getBasicRemote().sendText(message);
+    }
+    /**
+     * 队伍聊天
+     *
+     * @param userId
+     * @param text
+     * @param teamId
+     * @param chatType
+     */
+    private void teamChat(String userId, String text, Long teamId, Integer chatType) {
+        savaChat(userId, null, text, teamId, chatType);
+        MessageVo messageVo = new MessageVo();
+        User fromUser = userService.getById(userId);
+        WebSocketVo fromWebSocketVo = new WebSocketVo();
+        BeanUtils.copyProperties(fromUser, fromWebSocketVo);
+        messageVo.setFormUser(fromWebSocketVo);
+        messageVo.setText(text);
+        messageVo.setTeamId(teamId);
+        String toJson = new Gson().toJson(messageVo);
+        try {
+            broadcast(String.valueOf(teamId), toJson);
+            log.error("队伍聊天，发送给==={}", teamId);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 大厅聊天
+     *
+     * @param userId
+     * @param text
+     */
+    private void hallChat(String userId, String text, Integer chatType) {
+        savaChat(userId, null, text, null, chatType);
+        MessageVo messageVo = new MessageVo();
+        User fromUser = userService.getById(userId);
+        WebSocketVo fromWebSocketVo = new WebSocketVo();
+        BeanUtils.copyProperties(fromUser, fromWebSocketVo);
+        messageVo.setFormUser(fromWebSocketVo);
+        messageVo.setText(text);
+        messageVo.setChatType(chatType);
+        String toJson = new Gson().toJson(messageVo);
+        sendAllMessage(toJson);
+    }
+
+    /**
+     * 私聊
+     *
+     * @param userId
+     * @param text
+     */
+    private void privateChat(String userId, Long toId, String text, Integer chatType) {
+        savaChat(userId, toId, text, null, chatType);
+        Session toSession = SESSION_POOL.get(toId.toString());
+        if (toSession != null) {
+            MessageVo messageVo = chatService.chatResult(Long.parseLong(userId), toId, text,chatType);
+            String toJson = new Gson().toJson(messageVo);
+            sendOneMessage(toId.toString(), toJson);
+            log.info("发送给用户username={}，消息：{}", messageVo.getToUser(), toJson);
+        } else {
+            log.info("发送失败，未找到用户username={}的session", toId);
+        }
+    }
+
+    /**
+     * 保存聊天
+     *
+     * @param userId
+     * @param toId
+     * @param text
+     */
+    private void savaChat(String userId, Long toId, String text, Long teamId, Integer chatType) {
+        if (chatType == PRIVATE_CHAT) {
+            User user = userService.getById(userId);
+            Set<Long> userIds = stringJsonListToLongSet(user.getUserIds());
+            if (!userIds.contains(toId)) {
+                sendError(userId, "该用户不是你的好友");
+                return;
+            }
         }
         Chat chat = new Chat();
         chat.setFromId(Long.parseLong(userId));
@@ -196,6 +301,12 @@ public class WebSocket {
         chat.setText(text);
         chat.setChatType(PRIVATE_CHAT);
         chat.setCreateTime(new Date());
+        if (toId != null && toId > 0) {
+            chat.setToId(toId);
+        }
+        if (teamId != null && teamId > 0) {
+            chat.setTeamId(teamId);
+        }
         chatService.save(chat);
     }
 

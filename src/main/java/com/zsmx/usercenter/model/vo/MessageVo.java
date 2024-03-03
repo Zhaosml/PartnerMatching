@@ -13,9 +13,11 @@ public class MessageVo implements Serializable {
     private String text;
 
 
-    //11day
+    //12day
     private Boolean isMy = false;
     private Integer chatType;
+
+
     private Boolean isAdmin = false;
     private String createTime;
 }

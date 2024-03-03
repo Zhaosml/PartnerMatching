@@ -7,6 +7,10 @@ import java.io.Serializable;
 public class ChatRequest implements Serializable {
     private static final long serialVersionUID = -2549525575099822962L;
     /**
+     * 队伍聊天室id
+     */
+    private Long teamId;
+    /**
      * 发送消息id
      */
     private Long fromId;

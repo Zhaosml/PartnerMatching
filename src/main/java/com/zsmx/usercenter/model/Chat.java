@@ -57,6 +57,12 @@ public class Chat implements Serializable {
      */
     private Long teamId;
 
+    /**
+     * 是否删除
+     */
+    private Integer isDelete;
+
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

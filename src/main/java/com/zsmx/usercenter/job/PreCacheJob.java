@@ -3,6 +3,7 @@ package com.zsmx.usercenter.job;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsmx.usercenter.model.User;
+import com.zsmx.usercenter.service.ChatService;
 import com.zsmx.usercenter.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -29,6 +30,8 @@ public class  PreCacheJob {
 
     @Resource
     private UserService userService;
+    @Resource
+    private ChatService chatService;
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;

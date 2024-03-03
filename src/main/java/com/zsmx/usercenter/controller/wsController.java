@@ -29,12 +29,7 @@ public class wsController {
         webSocket.sendOneMessage(userId, message);
         return ResultUtils.success(null);
     }
-    @ApiOperation(value = "发送单点消息")
-    @PostMapping("/onOpen")
-    public BaseResponse onOpen(@RequestParam String userId, Session session) {
-        webSocket.onOpen(session,userId);
-        return ResultUtils.success(null);
-    }
+
 
 
 
