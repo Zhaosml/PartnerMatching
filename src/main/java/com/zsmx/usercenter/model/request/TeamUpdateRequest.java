@@ -1,5 +1,6 @@
 package com.zsmx.usercenter.model.request;
 
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -45,5 +46,11 @@ public class TeamUpdateRequest implements Serializable {
      * 密码
      */
     private String password;
+
+    /**
+     * 封面图片
+     */
+    @ApiModelProperty(value = "封面图片")
+    private String coverImage;
 }
 

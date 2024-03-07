@@ -8,6 +8,7 @@ import com.zsmx.usercenter.model.request.TeamJoinRequest;
 import com.zsmx.usercenter.model.request.TeamQuitRequest;
 import com.zsmx.usercenter.model.request.TeamUpdateRequest;
 import com.zsmx.usercenter.model.vo.TeamUserVO;
+import com.zsmx.usercenter.model.vo.UserVO;
 
 import java.util.List;
 
@@ -63,4 +64,33 @@ public interface TeamService extends IService<Team> {
      * @return
      */
     boolean deleteTeam(long id, User loginUser);
+    /**
+     * 获得团队
+     *
+     * @param teamId 团队id
+     * @param userId 用户id
+     * @return
+     */
+    TeamUserVO getTeam(Long teamId,  Long userId);
+    /**
+     * 获取团队成员
+     *
+     * @param teamId 团队id
+     * @return {@link List}<{@link UserVO}>
+     */
+    List<UserVO> getTeamMember(Long teamId);
+    /**
+     * 列出我所有加入
+     *
+     * @param id id
+     * @return {@link List}<{@link TeamUserVO}>
+     */
+    List<TeamUserVO> listAllMyJoin(long id);
+
+
+    /**
+     * 删除过期队伍
+     */
+
+//    void deleteDissolveTeam();
 }

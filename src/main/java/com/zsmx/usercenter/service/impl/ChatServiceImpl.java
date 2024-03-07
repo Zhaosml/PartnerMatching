@@ -1,5 +1,7 @@
 package com.zsmx.usercenter.service.impl;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 ;
@@ -14,12 +16,18 @@ import com.zsmx.usercenter.model.vo.WebSocketVo;
 import com.zsmx.usercenter.service.ChatService;
 import com.zsmx.usercenter.service.UserService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static com.zsmx.usercenter.constant.ChatConstant.CACHE_CHAT_HALL;
+import static com.zsmx.usercenter.constant.ChatConstant.CACHE_CHAT_PRIVATE;
 
 /**
 * @author ikun
@@ -31,6 +39,8 @@ public class ChatServiceImpl extends ServiceImpl<ChatMapper, Chat>
     implements ChatService {
 
     @Resource
+    private RedisTemplate<String, List<MessageVo>> redisTemplate;
+    @Resource
     private UserService userService;
 
     public List<MessageVo> getPrivateChat(ChatRequest chatRequest, int chatType, User loginUser) {
@@ -38,9 +48,17 @@ public class ChatServiceImpl extends ServiceImpl<ChatMapper, Chat>
         if (toId == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "状态异常请重试");
         }
+        // 获取缓存
+        List<MessageVo> chatRecords = getCache(CACHE_CHAT_PRIVATE, loginUser.getId() + "" + toId);
+        if (chatRecords != null) {
+            saveCache(CACHE_CHAT_PRIVATE, loginUser.getId() + "" + toId, chatRecords);
+            return chatRecords;
+        }
+
         LambdaQueryWrapper<Chat> chatLambdaQueryWrapper = new LambdaQueryWrapper<>();
         chatLambdaQueryWrapper.
-                and(privateChat -> privateChat.eq(Chat::getFromId, loginUser.getId())
+                and(privateChat -> privateChat
+                                .eq(Chat::getFromId, loginUser.getId())
                         .eq(Chat::getToId, toId)
                         .or().
                         eq(Chat::getToId, loginUser.getId())
@@ -50,17 +68,62 @@ public class ChatServiceImpl extends ServiceImpl<ChatMapper, Chat>
 
         List<Chat> list = this.list(chatLambdaQueryWrapper);
 
-        return list.stream().map(chat -> {
-            MessageVo messageVo = chatResult(loginUser.getId(), toId, chat.getText(),chatType);
+        List<MessageVo> messageVoList = list.stream().map(chat -> {
+            MessageVo messageVo = chatResult(loginUser.getId(), toId, chat.getText(), chatType, chat.getCreateTime());
             if (chat.getFromId().equals(loginUser.getId())) {
                 messageVo.setIsMy(true);
             }
             return messageVo;
         }).collect(Collectors.toList());
+        saveCache(CACHE_CHAT_PRIVATE, loginUser.getId() + "" + toId, messageVoList);
+        return messageVoList;
+    }
+
+
+    /**
+     * 保存缓存
+     *
+     * @param redisKey
+     * @param id
+     * @param messageVos
+     */
+    @Override
+    public void saveCache(String redisKey, String id, List<MessageVo> messageVos) {
+        try {
+            ValueOperations<String, List<MessageVo>> valueOperations = redisTemplate.opsForValue();
+            // 解决缓存雪崩
+            int i = RandomUtil.randomInt(2, 3);
+            if (redisKey.equals(CACHE_CHAT_HALL)) {
+                valueOperations.set(redisKey, messageVos, 2 + i / 10, TimeUnit.MINUTES);
+            } else {
+                valueOperations.set(redisKey + id, messageVos, 2 + i / 10, TimeUnit.MINUTES);
+            }
+        } catch (Exception e) {
+            log.error("redis set key error");
+        }
+    }
+
+    /**
+     * 获取缓存
+     *
+     * @param redisKey
+     * @param id
+     * @return
+     */
+    @Override
+    public List<MessageVo> getCache(String redisKey, String id) {
+        ValueOperations<String, List<MessageVo>> valueOperations = redisTemplate.opsForValue();
+        List<MessageVo> chatRecords;
+        if (redisKey.equals(CACHE_CHAT_HALL)) {
+            chatRecords = valueOperations.get(redisKey);
+        } else {
+            chatRecords = valueOperations.get(redisKey + id);
+        }
+        return chatRecords;
     }
 
     @Override
-    public MessageVo chatResult(Long userId, Long toId, String text, Integer chatType) {
+    public MessageVo chatResult(Long userId, Long toId, String text, Integer chatType, Date createTime) {
         MessageVo messageVo = new MessageVo();
         User fromUser = userService.getById(userId);
         User toUser = userService.getById(toId);
@@ -74,6 +137,7 @@ public class ChatServiceImpl extends ServiceImpl<ChatMapper, Chat>
         messageVo.setFormUser(fromWebSocketVo);
         messageVo.setToUser(toWebSocketVo);
         messageVo.setText(text);
+        messageVo.setCreateTime(DateUtil.format(createTime, "yyyy年MM月dd日 HH:mm:ss"));
         messageVo.setChatType(chatType);
         return messageVo;
     }
@@ -135,6 +199,17 @@ public class ChatServiceImpl extends ServiceImpl<ChatMapper, Chat>
         messageVo.setText(text);
         return messageVo;
     }
+
+    @Override
+    public void deleteKey(String key, String id) {
+        if (key.equals(CACHE_CHAT_HALL)) {
+            redisTemplate.delete(key);
+        } else {
+            redisTemplate.delete(key + id);
+        }
+    }
+
+
 }
 
 

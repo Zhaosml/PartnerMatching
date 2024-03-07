@@ -1,8 +1,10 @@
 package com.zsmx.usercenter.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.gson.Gson;
 import com.zsmx.usercenter.common.ErrorCode;
 import com.zsmx.usercenter.exception.BusinessException;
 import com.zsmx.usercenter.mapper.TeamMapper;
@@ -30,11 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.io.BufferedInputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
 * @author ikun
@@ -419,38 +419,144 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team> implements Te
         // 5. 删除队伍
         return this.removeById(teamId);
     }
-
     /**
-     * 根据 id 获取队伍信息
-     * @param teamId
-     * @return
+     * 得到团队
+     *
+     * @param teamId 团队id
+     * @param userId 用户id
+     * @return {@link }
      */
-    private Team getTeamById(Long teamId) {
-        if(teamId == 0 || teamId <= 0){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
+    @Override
+    public TeamUserVO getTeam(Long teamId, Long userId) {
         Team team = this.getById(teamId);
-        if(team == null){
-            throw new BusinessException(ErrorCode.NULL_ERROR,"队伍不存在");
+        if (team == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在");
         }
-        return team;
+        TeamUserVO teamVO = new TeamUserVO();
+        BeanUtils.copyProperties(team, teamVO);
+        LambdaQueryWrapper<UserTeam> userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        userTeamLambdaQueryWrapper.eq(UserTeam::getTeamId, teamId);
+        long count = userTeamService.count(userTeamLambdaQueryWrapper);
+        teamVO.setHasJoinNum((int) count);
+        userTeamLambdaQueryWrapper.eq(UserTeam::getUserId, userId);
+        long userJoin = userTeamService.count(userTeamLambdaQueryWrapper);
+        teamVO.setHasJoin(userJoin > 0);
+        User leader = userService.getById(team.getUserId());
+        teamVO.setLeaderName(leader.getUsername());
+
+        return teamVO;
     }
 
     /**
-     * 获取某队伍当前人数
-     * @param teamId
-     * @return
+     * 获取团队 成员
+     *
+     * @param teamId 团队id
+     * @return {@link List}<{@link UserVO}>
      */
-    private long countTeamUserByTeamId(long teamId){
-        QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
-        userTeamQueryWrapper.eq("teamId",teamId);
-        return userTeamService.count(userTeamQueryWrapper);
+    @Override
+    public List<UserVO> getTeamMember(Long teamId) {
+        Team team = this.getById(teamId);
+        if (team == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在");
+        }
+        // 根据当前队伍id查询  用户队伍表所有的的数据     里面有teamid和userid
+        LambdaQueryWrapper<UserTeam> userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        userTeamLambdaQueryWrapper.eq(UserTeam::getTeamId, teamId);
+        List<UserTeam> userTeamList = userTeamService.list(userTeamLambdaQueryWrapper);
+
+
+        List<Long> userIdList = userTeamList.stream()
+                .map(UserTeam::getUserId)
+                .collect(Collectors.toList());
+        if (userIdList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<UserVO> userVOList = new ArrayList<>();
+        // todo 看还有其他方式能实现吗
+        for (UserTeam userTeam : userTeamList) {
+            UserVO userVO = new UserVO(); // 假设UserVO是用于展示用户信息的视图对象
+            userVO.setId(userTeam.getUserId());
+            User user = userService.getById(userTeam.getUserId());
+            if (user != null) {
+                userVO.setUsername(user.getUsername());
+                userVO.setAvatarUrl(user.getAvatarUrl());
+            }
+            // 还可以根据userId从用户表中获取其他信息设置到UserVO中
+            userVOList.add(userVO);
+        }
+
+        return userVOList;
+
+//        for (UserTeam userTeam : userTeamList){
+//            userIdList
+//        }
+//        LambdaQueryWrapper<User> userLambdaQueryWrapper = new LambdaQueryWrapper<>();
+//        userLambdaQueryWrapper.in(User::getId, userIdList);
+//        return (List<UserVO>) userLambdaQueryWrapper;
+
+//        return userList.stream()
+//                .map((user) -> followService.getUserFollowInfo(user, userId))
+//                .collect(Collectors.toList());    }
+    }
+    /**
+     * 列出我所有加入
+     *
+     * @param id id
+     * @return {@link List}<{@link TeamUserVO}>
+     */
+    @Override
+    public List<TeamUserVO> listAllMyJoin(long id) {
+        LambdaQueryWrapper<UserTeam> userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        userTeamLambdaQueryWrapper.eq(UserTeam::getUserId, id);
+        List<Long> teamIds = userTeamService.list(userTeamLambdaQueryWrapper)
+                .stream().map(UserTeam::getTeamId)
+                .collect(Collectors.toList());
+        if (teamIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        LambdaQueryWrapper<Team> teamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        teamLambdaQueryWrapper.in(Team::getId, teamIds);
+        List<Team> teamList = this.list(teamLambdaQueryWrapper);
+        return teamList
+                .stream()
+                .map((team) -> {
+                    TeamUserVO teamVO = new TeamUserVO();
+                    BeanUtils.copyProperties(team, teamVO);
+                    teamVO.setHasJoin(true);
+                    return teamVO;
+                }).collect(Collectors.toList());
     }
 
 
+    /**
+         * 根据 id 获取队伍信息
+         * @param teamId
+         * @return
+         */
+        private Team getTeamById(Long teamId){
+            if (teamId == 0 || teamId <= 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR);
+            }
+            Team team = this.getById(teamId);
+            if (team == null) {
+                throw new BusinessException(ErrorCode.NULL_ERROR, "队伍不存在");
+            }
+            return team;
+        }
 
+        /**
+         * 获取某队伍当前人数
+         * @param teamId
+         * @return
+         */
+        private long countTeamUserByTeamId ( long teamId){
+            QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
+            userTeamQueryWrapper.eq("teamId", teamId);
+            return userTeamService.count(userTeamQueryWrapper);
+        }
+    }
 
-}
 
 
 

@@ -7,6 +7,7 @@ import com.google.gson.reflect.TypeToken;
 import com.zsmx.usercenter.common.ErrorCode;
 import com.zsmx.usercenter.exception.BusinessException;
 import com.zsmx.usercenter.mapper.UserMapper;
+import com.zsmx.usercenter.model.Team;
 import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.request.UserQueryRequest;
 import com.zsmx.usercenter.service.UserService;
@@ -17,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
+import org.springframework.validation.BindException;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -44,6 +46,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Resource
     private UserMapper userMapper;
+
     /**
      * 盐值，混淆密码
      */
@@ -173,6 +176,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             safetyUser.setPhone(user.getPhone());
             safetyUser.setEmail(user.getEmail());
             safetyUser.setUserRole(user.getUserRole());
+            safetyUser.setUserIds(user.getUserIds());
             safetyUser.setUserStatus(user.getUserStatus());
             safetyUser.setCreateTime(user.getCreateTime());
             safetyUser.setPlanetCode(user.getPlanetCode());
@@ -244,7 +248,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         //如果是管理员，允许更新任何用户
         //如果不是管理员，只允许更新当前信息
-        if(!isAdmin(loginUser )&& userId!=loginUser.getId()){
+        if(!isAdmin(loginUser)&& userId!=loginUser.getId()){
             throw new BusinessException(ErrorCode.NO_AUTH);
         }
         User oldUser = userMapper.selectById(userId);
@@ -423,9 +427,34 @@ return null;
         return users;
     }
 
+    /**
+     * 添加标签
+     */
+    @Override
+    public boolean addTags(User loginUser, String tags) {
+
+        User userId = this.getById(loginUser.getId());
+        String tag = userId.getTags();
+        Gson gson = new Gson();
+            Set<String> tagList = gson.fromJson(tag,new TypeToken<Set<String>>() {
+            }.getType());
+
+        if(tagList.size() >= 10){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"最多设置10个标签");
+        }
+
+        tagList.add(tags);
+
+        String tagsList = gson.toJson(tagList);
+
+        userId.setTags(tagsList);
+
+        boolean result = this.updateById(userId);
+        return result;
+    }
+    }
 
 
-}
 
 
 

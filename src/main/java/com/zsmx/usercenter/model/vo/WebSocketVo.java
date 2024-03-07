@@ -22,7 +22,7 @@ public class WebSocketVo implements Serializable {
     /**
      * 用户头像
      */
-    private String userAvatarUrl;
+    private String avatarUrl;
 
     /**
      * 添加的好友

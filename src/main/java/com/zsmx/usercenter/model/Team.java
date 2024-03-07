@@ -2,6 +2,7 @@ package com.zsmx.usercenter.model;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -29,6 +30,12 @@ public class Team implements Serializable {
      * 描述
      */
     private String description;
+    /**
+     * 封面图片
+     */
+    @ApiModelProperty(value = "封面图片")
+    private String coverImage;
+
 
     /**
      * 最大人数

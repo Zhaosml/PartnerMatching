@@ -7,6 +7,7 @@ import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.request.ChatRequest;
 import com.zsmx.usercenter.model.vo.MessageVo;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -15,6 +16,23 @@ import java.util.List;
 * @createDate 2024-02-29 21:42:58
 */
 public interface ChatService extends IService<Chat> {
+    /**
+     * 保存缓存
+     *
+     * @param redisKey
+     * @param id
+     * @param messageVos
+     */
+    void saveCache(String redisKey, String id, List<MessageVo> messageVos);
+
+    /**
+     * 获取缓存
+     *
+     * @param redisKey
+     * @param id
+     * @return
+     */
+    List<MessageVo> getCache(String redisKey, String id);
     /**
      * 获取私聊聊天内容
      *
@@ -42,7 +60,7 @@ public interface ChatService extends IService<Chat> {
      * @param text
      * @return
      */
-    MessageVo chatResult(Long fromId, Long toId, String text,Integer chatType);
+    MessageVo chatResult(Long fromId, Long toId, String text,Integer chatType, Date createTime);
 
     /**
      * 队伍聊天室
@@ -62,5 +80,13 @@ public interface ChatService extends IService<Chat> {
      * @return
      */
     List<MessageVo> returnMessage(Long userId, LambdaQueryWrapper<Chat> chatLambdaQueryWrapper);
+
+    /**
+     * 删除key
+     *
+     * @param key
+     * @param id
+     */
+    void deleteKey(String key, String id);
 
 }

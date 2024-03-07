@@ -1,6 +1,7 @@
 package com.zsmx.usercenter.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zsmx.usercenter.model.Team;
 import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.request.UserQueryRequest;
 
@@ -122,4 +123,8 @@ public interface UserService extends IService<User> {
      */
     List<User> searchFriend(UserQueryRequest userQueryRequest, User currentUser);
 
+    /**
+     * 添加标签
+     */
+    boolean addTags(User loginUser, String tags);
 }

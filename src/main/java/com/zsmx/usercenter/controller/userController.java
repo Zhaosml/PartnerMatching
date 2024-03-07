@@ -8,6 +8,7 @@ import com.zsmx.usercenter.common.BaseResponse;
 import com.zsmx.usercenter.common.ErrorCode;
 import com.zsmx.usercenter.common.ResultUtils;
 import com.zsmx.usercenter.exception.BusinessException;
+import com.zsmx.usercenter.model.Team;
 import com.zsmx.usercenter.model.User;
 import com.zsmx.usercenter.model.request.UserLoginRequest;
 import com.zsmx.usercenter.model.request.UserQueryRequest;
@@ -265,6 +266,18 @@ public class userController {
         }.getType());
 
         return ResultUtils.success(userTagList);
+    }
+    /**
+     * 添加标签
+     */
+    @PostMapping("addTags")
+    public BaseResponse<Boolean> addTags(@RequestBody String tags, HttpServletRequest request){
+        if(tags == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        boolean result = userService.addTags(loginUser,tags);
+        return  ResultUtils.success(result);
     }
 
 

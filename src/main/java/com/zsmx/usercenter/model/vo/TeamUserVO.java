@@ -1,5 +1,6 @@
 package com.zsmx.usercenter.model.vo;
 
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -77,4 +78,12 @@ public class TeamUserVO implements Serializable {
      * 已加入的用户数
      */
     private Integer hasJoinNum;
+
+    /**
+     * 封面图片
+     */
+    @ApiModelProperty(value = "封面图片")
+    private String coverImage;
+    private String leaderName;
+
 }

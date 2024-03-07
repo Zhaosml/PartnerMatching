@@ -13,4 +13,10 @@ public interface ChatConstant {
      * 大厅聊天
      */
     int HALL_CHAT = 3;
+
+    String CACHE_CHAT_HALL = "zsmx:chat:chat_records:chat_hall";
+
+    String CACHE_CHAT_PRIVATE = "zsmx:chat:chat_records:chat_private";
+
+    String CACHE_CHAT_TEAM = "zsmx:chat:chat_records:chat_team";
 }
