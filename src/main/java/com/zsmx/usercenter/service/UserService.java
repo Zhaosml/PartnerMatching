@@ -128,5 +128,12 @@ public interface UserService extends IService<User> {
      */
     boolean addTags(User loginUser, String tags);
 
+    /**
+     * 是否为好友
+     * @param id
+     * @param loginUser
+     * @return
+     */
+
     boolean isFriend(Long id, User loginUser);
 }

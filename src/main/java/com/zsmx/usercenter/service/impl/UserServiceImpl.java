@@ -22,10 +22,7 @@ import org.springframework.validation.BindException;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -432,12 +429,21 @@ return null;
      */
     @Override
     public boolean addTags(User loginUser, String tags) {
-
+        // 根据当前id用户 查询该id的全部内容
         User userId = this.getById(loginUser.getId());
+        // 获取当前用户的标签
         String tag = userId.getTags();
+
         Gson gson = new Gson();
-            Set<String> tagList = gson.fromJson(tag,new TypeToken<Set<String>>() {
-            }.getType());
+        Set<String> tagList;
+
+        if (tag == null || tag.isEmpty()) {
+            tagList = new HashSet<>(); // 创建新的标签集合
+        } else {
+            tagList = gson.fromJson(tag, new TypeToken<Set<String>>() {}.getType());
+        }
+//            Set<String> tagList = gson.fromJson(tag,new TypeToken<Set<String>>() {
+//            }.getType());
 
         if(tagList.size() >= 10){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"最多设置10个标签");
@@ -449,10 +455,17 @@ return null;
 
         userId.setTags(tagsList);
 
+
         boolean result = this.updateById(userId);
         return result;
     }
 
+    /**
+     * 是否为好友
+     * @param id
+     * @param loginUser
+     * @return
+     */
     @Override
     public boolean isFriend(Long id, User loginUser) {
         User userId = this.getById(loginUser);
