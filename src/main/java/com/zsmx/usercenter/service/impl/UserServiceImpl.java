@@ -452,7 +452,21 @@ return null;
         boolean result = this.updateById(userId);
         return result;
     }
+
+    @Override
+    public boolean isFriend(Long id, User loginUser) {
+        User userId = this.getById(loginUser);
+        String userIds = userId.getUserIds();
+        if(userIds==null){
+            return false;
+        }
+        Gson gson = new Gson();
+        Set<Long> userList = stringJsonListToLongSet(userIds);
+//        Set<String> userList = gson.fromJson(userIds,new TypeToken<Set<String>>(){}.getType());
+        return (userList.contains(id));
+
     }
+}
 
 
 

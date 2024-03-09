@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/team")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true",allowedHeaders = "*")
+//@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true",allowedHeaders = "*")
 public class TeamController {
     @Resource
     private TeamService teamService;

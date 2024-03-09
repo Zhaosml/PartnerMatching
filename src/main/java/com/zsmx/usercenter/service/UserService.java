@@ -127,4 +127,6 @@ public interface UserService extends IService<User> {
      * 添加标签
      */
     boolean addTags(User loginUser, String tags);
+
+    boolean isFriend(Long id, User loginUser);
 }

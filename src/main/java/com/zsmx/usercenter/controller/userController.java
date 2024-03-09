@@ -46,7 +46,7 @@ import static com.zsmx.usercenter.constant.UserConstant.USER_LOGIN_STATE;
  */
 @RestController
 @RequestMapping("/user")
-@CrossOrigin( origins = "http://localhost:5173", allowCredentials = "true",allowedHeaders = "true")
+//@CrossOrigin( origins = "http://localhost:5173", allowCredentials = "true",allowedHeaders = "true")
 @Slf4j
 public class userController {
 
@@ -317,6 +317,18 @@ public class userController {
         User currentUser = userService.getLoginUser(request);
         List<User> searchFriend = userService.searchFriend(userQueryRequest, currentUser);
         return ResultUtils.success(searchFriend);
+    }
+
+    @GetMapping("/isFriend/{id}")
+    public BaseResponse<Boolean> isFriend(@PathVariable("id") Long id,HttpServletRequest request) {
+        if(id<0){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        User loginUser = userService.getLoginUser(request);
+        boolean friend = userService.isFriend(id, loginUser);
+
+        return ResultUtils.success(friend);
+
     }
 
 
