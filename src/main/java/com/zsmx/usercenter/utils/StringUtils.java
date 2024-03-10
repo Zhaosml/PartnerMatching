@@ -20,9 +20,12 @@ public class StringUtils {
      * @param jsonList
      * @return Set<Long>
      */
+    // 将一个字符串类型的 JSON 数组转换为一个长整型的集合
     public static Set<Long> stringJsonListToLongSet(String jsonList) {
+        // 使用 Gson 将 JSON 字符串转换为 Set<Long> 类型
         Set<Long> set = new Gson().fromJson(jsonList, new TypeToken<Set<Long>>() {
         }.getType());
+        // 使用 Optional 来处理可能为空的情况，如果 set 为 null，则返回一个空的 HashSet
         return Optional.ofNullable(set).orElse(new HashSet<>());
     }
 }

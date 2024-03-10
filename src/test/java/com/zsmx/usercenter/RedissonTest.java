@@ -1,7 +1,6 @@
 package com.zsmx.usercenter;
 
 import org.junit.jupiter.api.Test;
-import org.redisson.RedissonMap;
 import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;

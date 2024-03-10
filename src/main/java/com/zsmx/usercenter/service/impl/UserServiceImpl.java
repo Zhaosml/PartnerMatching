@@ -48,7 +48,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * 盐值，混淆密码
      */
     private static final String SALT = "zsmx";
-//    private static final String USER_LOGIN_STATE = "userLoginState";
 
     @Override
     public long userRegister(String username, String userAccount, String userPassword, String checkPassword) {
@@ -64,14 +63,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (userPassword.length() < 8 || checkPassword.length() < 8) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
         }
-        //  后面加的
-//        if (planetCode.length() > 5) {
-//            throw new BusinessException(ErrorCode.PARAMS_ERROR, "星球编号过长");
-//        }
         // 1.3. 账户不能包含特殊字符
         String accountRegex = "[`~!#\\$%^&*()+=|{}':;',\\\\\\\\[\\\\\\\\].<>/?~！@#￥%……&*（）9——+|{}【】\\\\\"‘；：”“’。，、？]";
 
-        // String accountRegex = "[`~!#\\$%^&*()+=|{}'Aa:;',\\\\\\\\[\\\\\\\\].<>/?~！@#￥%……&*（）9——+|{}【】\\\\\"‘；：”“’。，、？]";
         Matcher matcher = Pattern.compile(accountRegex).matcher(userAccount);
         if (matcher.find()) {
             return -1;
@@ -85,19 +79,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 1.4. 账户不能重复
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         wrapper.eq("userAccount",userAccount);
-        // long count = this.count(wrapper);
-        long count = userMapper.selectCount(wrapper);
+         long count = this.count(wrapper);
+        //        long count = userMapper.selectCount(wrapper);
         if(count>0){
             return -1;
         }
-        // 星球id不能重复
-//        wrapper = new QueryWrapper<>();
-//        wrapper.eq("userAccount",userAccount);
-//        // long count = this.count(wrapper);
-//        count = userMapper.selectCount(wrapper);
-//        if(count>0){
-//            return -1;
-//        }
 
         // 2. 加密
         // final String SALT = "zsmx";
@@ -107,7 +93,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         user.setUsername(username);
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
-//        user.setPlanetCode(planetCode);
         boolean saveResult = this.save(user);
         if(!saveResult){
             return -1;
@@ -219,13 +204,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             Set<String> tempTagNameSet = gson.fromJson(tags, new TypeToken<Set<String>>(){
                 }.getType());
                     // 4. 遍历 tagNameList 中的每个标签
-                    for (String tagName : tagNameList){
-                        // 如果当前的标签不在用户的标签集合中
-                        if(!tempTagNameSet.contains(tagName)){
-                            // 返回 false，表示当前用户不符合筛选条件
-                            return false;
-                        }
-                    }
+            for (String tagName : tagNameList){
+                // 如果当前的标签不在用户的标签集合中
+                if(!tempTagNameSet.contains(tagName)){
+                    // 返回 false，表示当前用户不符合筛选条件
+                    return false;
+                }
+            }
                     return  true;
 
             }).map(this::getSafetyUser).collect(Collectors.toList());
@@ -356,13 +341,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public List<User> tags(List<String>  tagList) {
-return null;
+    public List<User> tags(List<String> tagList) {
+        return null;
     }
 
     @Override
     public List<User> getFriendsById(User currentUser) {
+        // 查询当前id的全部数据
         User loginUser = this.getById(currentUser.getId());
+        // 全部数据里的好友列表(userIds) 转换成long集合
         Set<Long> friendsId = stringJsonListToLongSet(loginUser.getUserIds());
         return friendsId.stream().map(user -> this.getSafetyUser(this.getById(user))).collect(Collectors.toList());
     }
