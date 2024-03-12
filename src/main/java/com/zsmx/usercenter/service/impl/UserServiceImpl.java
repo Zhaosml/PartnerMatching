@@ -49,6 +49,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     private static final String SALT = "zsmx";
 
+    /**
+     * 注册
+     * @param username
+     * @param userAccount  用户账户
+     * @param userPassword 用户密码
+     * @param checkPassword 校验密码
+     * @return
+     */
     @Override
     public long userRegister(String username, String userAccount, String userPassword, String checkPassword) {
         // 1. 校验
@@ -100,6 +108,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return user.getId();
     }
 
+    /**
+     * 登录
+     * @param userAccount 用户账户
+     * @param userPassword 用户密码
+     * @param request
+     * @return
+     */
     @Override
     public User userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
@@ -138,33 +153,33 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return safetyUser;
     }
 
-        /**
-             * 用户脱敏
-         * @param user 用户信息
-         * @return  脱敏后的用户信息
-         */
-        @Override
-        public User getSafetyUser(User user){
-            if(user==null){
-                return null;
-            }
-            User safetyUser = new User();
-            safetyUser.setId(user.getId());
-            safetyUser.setProfile(user.getProfile());
-            safetyUser.setUsername(user.getUsername());
-            safetyUser.setUserAccount(user.getUserAccount());
-            safetyUser.setAvatarUrl(user.getAvatarUrl());
-            safetyUser.setGender(user.getGender());
-            safetyUser.setPhone(user.getPhone());
-            safetyUser.setEmail(user.getEmail());
-            safetyUser.setUserRole(user.getUserRole());
-            safetyUser.setUserIds(user.getUserIds());
-            safetyUser.setUserStatus(user.getUserStatus());
-            safetyUser.setCreateTime(user.getCreateTime());
-            safetyUser.setPlanetCode(user.getPlanetCode());
-            safetyUser.setTags(user.getTags());
-            return safetyUser;
+    /**
+         * 用户脱敏
+     * @param user 用户信息
+     * @return  脱敏后的用户信息
+     */
+    @Override
+    public User getSafetyUser(User user){
+        if(user==null){
+            return null;
         }
+        User safetyUser = new User();
+        safetyUser.setId(user.getId());
+        safetyUser.setProfile(user.getProfile());
+        safetyUser.setUsername(user.getUsername());
+        safetyUser.setUserAccount(user.getUserAccount());
+        safetyUser.setAvatarUrl(user.getAvatarUrl());
+        safetyUser.setGender(user.getGender());
+        safetyUser.setPhone(user.getPhone());
+        safetyUser.setEmail(user.getEmail());
+        safetyUser.setUserRole(user.getUserRole());
+        safetyUser.setUserIds(user.getUserIds());
+        safetyUser.setUserStatus(user.getUserStatus());
+        safetyUser.setCreateTime(user.getCreateTime());
+        safetyUser.setPlanetCode(user.getPlanetCode());
+        safetyUser.setTags(user.getTags());
+        return safetyUser;
+    }
 
     /**
      * 注销用户
@@ -237,7 +252,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if(oldUser == null){
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
-
         return userMapper.updateById(user);
     }
 
@@ -277,7 +291,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 仅管理员可查询
         return loginUser != null && loginUser.getUserRole() == ADMIN_ROLE;
     }
-
+    /**
+     * 获取最匹配的用户
+     *
+     * @param num
+     * @param loginUser
+     * @return
+     */
     @Override
     public List<User> matchUsers(long num, User loginUser) {
         // 查询 id和标签  标签不能为空

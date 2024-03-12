@@ -28,7 +28,9 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.text.DecimalFormat;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -207,6 +209,36 @@ public class userController {
         }
         return ResultUtils.success(page);
     }
+    @GetMapping("/selectUser")
+    @ApiOperation(value = "查询用户(分页)" ,notes = "首页-查询用户 查询用户数据并且保存到redis")
+    public BaseResponse<Page<User>> listUser(long pageNum,long pageSize) {
+        Random random = new Random();
+        // 生成随机数
+        double randomNumber = random.nextDouble() * 9 + 1; // 生成 1 到 10 之间的随机数
+        // 格式化数字保留两位小数
+        DecimalFormat df = new DecimalFormat("#.##");
+        String key = df.format(randomNumber);
+        // 3. redis String类型的操作
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        // 4. 如果有缓存，直接读缓存
+        Page<User> page = (Page<User>) valueOperations.get(key);
+        // 判空，如果不为空则返回成功
+        if(page != null){
+            return ResultUtils.success(page);
+        }
+        // 5. 如果没缓存，查询数据库
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        page = userService.page(new Page<>(pageNum,pageSize),queryWrapper);
+        // 6.写缓存     30秒一次
+        try {
+            valueOperations.set(key,page,300000, TimeUnit.MICROSECONDS);
+        }
+        catch (Exception e){
+            log.error("redis set key error", e);
+        }
+        return ResultUtils.success(page);
+    }
+
 
     /**
      * 修改用户信息

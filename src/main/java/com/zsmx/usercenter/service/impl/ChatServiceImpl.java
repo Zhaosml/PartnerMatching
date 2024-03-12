@@ -44,26 +44,29 @@ public class ChatServiceImpl extends ServiceImpl<ChatMapper, Chat>
     private UserService userService;
 
     public List<MessageVo> getPrivateChat(ChatRequest chatRequest, int chatType, User loginUser) {
+        // 获取接受消息的id
         Long toId = chatRequest.getToId();
+        // 接受id为空就报错
         if (toId == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "状态异常请重试");
         }
-        // 获取缓存
+        // 获取缓存 有缓存就读取缓存，没缓存就新建缓存
         List<MessageVo> chatRecords = getCache(CACHE_CHAT_PRIVATE, loginUser.getId() + "" + toId);
         if (chatRecords != null) {
+            // key:CACHE_CHAT_PRIVATE value:loginUser.getId() + "" + toId, chatRecords
             saveCache(CACHE_CHAT_PRIVATE, loginUser.getId() + "" + toId, chatRecords);
             return chatRecords;
         }
 
         LambdaQueryWrapper<Chat> chatLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        chatLambdaQueryWrapper.
-                and(privateChat -> privateChat
+        chatLambdaQueryWrapper.and(privateChat -> privateChat
                                 .eq(Chat::getFromId, loginUser.getId())
-                        .eq(Chat::getToId, toId)
-                        .or().
-                        eq(Chat::getToId, loginUser.getId())
-                        .eq(Chat::getFromId, toId)
-                        ).eq(Chat::getChatType, chatType);
+                                .eq(Chat::getToId, toId)
+                                .or()
+                                .eq(Chat::getToId, loginUser.getId())
+                                .eq(Chat::getFromId, toId)
+                                )
+                                .eq(Chat::getChatType, chatType);
         // 两方共有聊天
 
         List<Chat> list = this.list(chatLambdaQueryWrapper);
@@ -94,6 +97,7 @@ public class ChatServiceImpl extends ServiceImpl<ChatMapper, Chat>
             // 解决缓存雪崩
             int i = RandomUtil.randomInt(2, 3);
             if (redisKey.equals(CACHE_CHAT_HALL)) {
+                // key:redisKey value:messageVos time:2 + i / 10, TimeUnit.MINUTES
                 valueOperations.set(redisKey, messageVos, 2 + i / 10, TimeUnit.MINUTES);
             } else {
                 valueOperations.set(redisKey + id, messageVos, 2 + i / 10, TimeUnit.MINUTES);
